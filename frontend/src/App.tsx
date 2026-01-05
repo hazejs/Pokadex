@@ -15,7 +15,6 @@ const App: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [capturing, setCapturing] = useState<string | null>(null);
   const [localSearch, setLocalSearch] = useState(
     searchParams.get('search') || ''
   );
@@ -152,17 +151,19 @@ const App: React.FC = () => {
   };
 
   const handleToggleCapture = async (name: string) => {
-    if (capturing) return;
-    setCapturing(name);
+    // Optimistic Update: Change status immediately
+    setPokemonList((prev) =>
+      prev.map((p) => (p.name === name ? { ...p, captured: !p.captured } : p))
+    );
+
     try {
       await toggleCapture(name);
+    } catch (error) {
+      // Revert if the API fails
+      console.error('Failed to toggle capture:', error);
       setPokemonList((prev) =>
         prev.map((p) => (p.name === name ? { ...p, captured: !p.captured } : p))
       );
-    } catch (error) {
-      console.error('Failed to toggle capture:', error);
-    } finally {
-      setCapturing(null);
     }
   };
 
@@ -198,7 +199,6 @@ const App: React.FC = () => {
               key={p.name}
               p={p}
               onToggleCapture={handleToggleCapture}
-              isCapturing={capturing === p.name}
               lastElementRef={
                 index === pokemonList.length - 1
                   ? lastPokemonElementRef

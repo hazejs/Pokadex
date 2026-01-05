@@ -13,7 +13,6 @@ import { getIconUrl, type Pokemon } from '../api';
 interface PokemonCardProps {
   p: Pokemon;
   onToggleCapture: (name: string) => void;
-  isCapturing: boolean;
   lastElementRef?: (node: HTMLDivElement | null) => void;
 }
 
@@ -94,23 +93,19 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
             e.stopPropagation();
             onToggleCapture(p.name);
           }}
-          className={`absolute top-6 right-6 px-4 py-2 rounded-2xl flex items-center gap-2 transition-all duration-300 backdrop-blur-md border shadow-lg cursor-pointer ${
+          className={`absolute top-6 right-6 px-4 py-2 rounded-2xl flex items-center gap-2 transition-all duration-150 shadow-md cursor-pointer ${
             p.captured
-              ? 'bg-emerald-500 border-emerald-400 text-white'
-              : 'bg-white/90 dark:bg-gray-800/90 border-gray-100 dark:border-gray-700 text-gray-400 hover:text-rose-500 hover:border-rose-200'
-          } ${
-            isCapturing
-              ? 'animate-pulse scale-90'
-              : 'hover:scale-110 active:scale-95'
-          }`}
+              ? 'bg-emerald-500 border-emerald-400 text-white shadow-emerald-500/20'
+              : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400 hover:text-rose-500 hover:border-rose-200'
+          } active:scale-95`}
         >
-          <span className='text-[10px] font-black uppercase tracking-widest'>
+          <span className="text-[10px] font-black uppercase tracking-widest">
             {p.captured ? 'Captured' : 'Capture'}
           </span>
           {p.captured ? (
-            <CheckCircle2 className='w-4 h-4' />
+            <CheckCircle2 className="w-4 h-4" />
           ) : (
-            <Circle className='w-4 h-4' />
+            <Circle className="w-4 h-4" />
           )}
         </button>
       </div>
