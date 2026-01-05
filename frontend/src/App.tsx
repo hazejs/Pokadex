@@ -10,7 +10,7 @@ import { MainLoader, InfiniteLoader } from './components/Loader';
 const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [types, setTypes] = useState<string[]>([]);
@@ -143,7 +143,7 @@ const App: React.FC = () => {
   const updateParams = (
     updates: Record<string, string | number | undefined>
   ) => {
-    startTransition(() => {
+    const performUpdate = () => {
       const newParams = new URLSearchParams(searchParams);
       Object.entries(updates).forEach(([key, value]) => {
         if (value === undefined || value === '') {
@@ -157,7 +157,14 @@ const App: React.FC = () => {
         newParams.set('page', '1');
       }
       setSearchParams(newParams);
-    });
+    };
+
+    // Only use transition for filters/search/sort, not for pagination
+    if (updates.page !== undefined) {
+      performUpdate();
+    } else {
+      startFilterTransition(performUpdate);
+    }
   };
 
   const handleToggleCapture = async (name: string) => {
@@ -199,7 +206,7 @@ const App: React.FC = () => {
 
       <main
         className={`max-w-7xl mx-auto p-4 md:p-8 transition-opacity duration-300 ${
-          isPending ? 'opacity-50' : 'opacity-100'
+          isFilterPending ? 'opacity-50' : 'opacity-100'
         }`}
       >
         <div className='flex justify-between items-center mb-8'>
