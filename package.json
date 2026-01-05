@@ -1,0 +1,14 @@
+{
+  "name": "pokedex-project",
+  "version": "1.0.0",
+  "scripts": {
+    "backend": "python app.py",
+    "frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "install-all": "pip install -r requirements.txt && cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
