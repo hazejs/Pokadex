@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useTransition } from 'react';
+import { preload } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { getPokemon, getTypes, toggleCapture, type Pokemon } from './api';
-import { useTheme } from './ThemeContext';
+import { useTheme } from './hooks/useTheme';
 import { Header } from './components/Header';
 import { PokemonCard } from './components/PokemonCard';
 import { MainLoader, InfiniteLoader } from './components/Loader';
@@ -9,6 +10,7 @@ import { MainLoader, InfiniteLoader } from './components/Loader';
 const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [types, setTypes] = useState<string[]>([]);
@@ -29,17 +31,19 @@ const App: React.FC = () => {
   const order = (searchParams.get('order') || 'asc') as 'asc' | 'desc';
   const limit = parseInt(searchParams.get('limit') || '20');
 
-  const observer = useRef<IntersectionObserver | null>(null);
   const lastPokemonElementRef = (node: HTMLDivElement | null) => {
-    if (loading || initialLoading) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver((entries) => {
+    if (loading || initialLoading || !node) return;
+
+    const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && pokemonList.length < total) {
         setLoading(true); // Show loader immediately
         updateParams({ page: page + 1 });
       }
     });
-    if (node) observer.current.observe(node);
+
+    observer.observe(node);
+    // React 19: Functional refs can now return a cleanup function
+    return () => observer.disconnect();
   };
 
   const fetchData = async (isInitial: boolean) => {
@@ -79,7 +83,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Debounce search input
+  // Debounce search input with Transition
   useEffect(() => {
     const timer = setTimeout(() => {
       const currentSearch = searchParams.get('search') || '';
@@ -93,7 +97,7 @@ const App: React.FC = () => {
   // Save scroll position
   useEffect(() => {
     const handleScroll = () => {
-      // Throttle scroll updates to once every 100ms
+      // Throttle scroll updates
       if (!window.requestAnimationFrame) {
         sessionStorage.setItem('scrollPos', window.scrollY.toString());
       } else {
@@ -111,7 +115,6 @@ const App: React.FC = () => {
     if (!initialLoading && isFirstMount.current === false) {
       const savedPos = sessionStorage.getItem('scrollPos');
       if (savedPos) {
-        // Small delay to ensure images/layout are settled
         setTimeout(() => {
           window.scrollTo({ top: parseInt(savedPos), behavior: 'smooth' });
         }, 100);
@@ -126,6 +129,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     getTypes().then(setTypes).catch(console.error);
+    // React 19: Preload important assets
+    preload(
+      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png',
+      { as: 'image' }
+    );
   }, []);
 
   useEffect(() => {
@@ -135,40 +143,46 @@ const App: React.FC = () => {
   const updateParams = (
     updates: Record<string, string | number | undefined>
   ) => {
-    const newParams = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === undefined || value === '') {
-        newParams.delete(key);
-      } else {
-        newParams.set(key, String(value));
-      }
-    });
+    startTransition(() => {
+      const newParams = new URLSearchParams(searchParams);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === '') {
+          newParams.delete(key);
+        } else {
+          newParams.set(key, String(value));
+        }
+      });
 
-    if (updates.page === undefined) {
-      newParams.set('page', '1');
-    }
-    setSearchParams(newParams);
+      if (updates.page === undefined) {
+        newParams.set('page', '1');
+      }
+      setSearchParams(newParams);
+    });
   };
 
   const handleToggleCapture = async (name: string) => {
-    // Optimistic Update: Change status immediately
-    setPokemonList((prev) =>
-      prev.map((p) => (p.name === name ? { ...p, captured: !p.captured } : p))
-    );
-
+    // Note: PokemonCard uses useOptimistic so the UI updates locally first.
+    // This function handles the actual API call and final state sync.
     try {
       await toggleCapture(name);
-    } catch (error) {
-      // Revert if the API fails
-      console.error('Failed to toggle capture:', error);
       setPokemonList((prev) =>
         prev.map((p) => (p.name === name ? { ...p, captured: !p.captured } : p))
       );
+    } catch (error) {
+      console.error('Failed to toggle capture:', error);
+      throw error; // Let PokemonCard handle the revert via useOptimistic
     }
   };
 
   return (
     <div className='min-h-screen bg-[#F7F6F3] dark:bg-[#0B0D0E] text-gray-900 dark:text-gray-100 transition-colors duration-500'>
+      {/* React 19 Native Metadata Hoisting */}
+      <title>Pokédex | {total} found</title>
+      <link
+        rel='icon'
+        href='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'
+      />
+
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
@@ -183,10 +197,14 @@ const App: React.FC = () => {
         updateParams={updateParams}
       />
 
-      <main className='max-w-7xl mx-auto p-4 md:p-8'>
+      <main
+        className={`max-w-7xl mx-auto p-4 md:p-8 transition-opacity duration-300 ${
+          isPending ? 'opacity-50' : 'opacity-100'
+        }`}
+      >
         <div className='flex justify-between items-center mb-8'>
-          <div className='px-4 py-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-sm font-medium'>
-            <span className='text-red-500 font-bold'>{total}</span> Pokemons
+          <div className='px-4 py-1.5 rounded-full bg-white dark:bg-[#16191E] shadow-sm border border-white dark:border-white/5 text-sm font-medium'>
+            <span className='text-rose-500 font-bold'>{total}</span> Pokemons
             Found
           </div>
         </div>
@@ -199,7 +217,7 @@ const App: React.FC = () => {
               key={p.name}
               p={p}
               onToggleCapture={handleToggleCapture}
-              lastElementRef={
+              ref={
                 index === pokemonList.length - 1
                   ? lastPokemonElementRef
                   : undefined

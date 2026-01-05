@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useOptimistic, useTransition } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -12,8 +12,8 @@ import { getIconUrl, type Pokemon } from '../api';
 
 interface PokemonCardProps {
   p: Pokemon;
-  onToggleCapture: (name: string) => void;
-  lastElementRef?: (node: HTMLDivElement | null) => void;
+  onToggleCapture: (name: string) => Promise<void>;
+  ref?: (node: HTMLDivElement | null) => void;
 }
 
 interface StatConfig {
@@ -58,14 +58,27 @@ const statConfig: StatConfig[] = [
 export const PokemonCard: React.FC<PokemonCardProps> = ({
   p,
   onToggleCapture,
-  isCapturing,
-  lastElementRef,
+  ref,
 }) => {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticCaptured, addOptimisticCaptured] = useOptimistic(
+    p.captured,
+    (state, newCaptured: boolean) => newCaptured
+  );
+
+  const handleCaptureClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    startTransition(async () => {
+      addOptimisticCaptured(!p.captured);
+      await onToggleCapture(p.name);
+    });
+  };
+
   return (
     <div
-      ref={lastElementRef}
+      ref={ref}
       className={`group relative flex flex-col bg-white dark:bg-[#16191E] rounded-[2rem] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white dark:border-white/5 overflow-hidden animate-slide-up ${
-        p.captured ? 'ring-2 ring-emerald-500/20' : ''
+        optimisticCaptured ? 'ring-2 ring-emerald-500/20' : ''
       }`}
     >
       {/* Top Section: Image & Number */}
@@ -89,20 +102,18 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
         {/* Action Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCapture(p.name);
-          }}
-          className={`absolute top-6 right-6 px-4 py-2 rounded-2xl flex items-center gap-2 transition-all duration-150 shadow-md cursor-pointer ${
-            p.captured
+          onClick={handleCaptureClick}
+          disabled={isPending}
+          className={`absolute top-6 right-6 px-4 py-2 rounded-2xl flex items-center gap-2 transition-transform duration-75 shadow-md cursor-pointer ${
+            optimisticCaptured
               ? 'bg-emerald-500 border-emerald-400 text-white shadow-emerald-500/20'
-              : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400 hover:text-rose-500 hover:border-rose-200'
-          } active:scale-95`}
+              : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'
+          } active:scale-90 ${isPending ? 'opacity-70' : ''}`}
         >
           <span className='text-[10px] font-black uppercase tracking-widest'>
-            {p.captured ? 'Captured' : 'Capture'}
+            {optimisticCaptured ? 'Captured' : 'Capture'}
           </span>
-          {p.captured ? (
+          {optimisticCaptured ? (
             <CheckCircle2 className='w-4 h-4' />
           ) : (
             <Circle className='w-4 h-4' />
