@@ -99,13 +99,13 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
               : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400 hover:text-rose-500 hover:border-rose-200'
           } active:scale-95`}
         >
-          <span className="text-[10px] font-black uppercase tracking-widest">
+          <span className='text-[10px] font-black uppercase tracking-widest'>
             {p.captured ? 'Captured' : 'Capture'}
           </span>
           {p.captured ? (
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className='w-4 h-4' />
           ) : (
-            <Circle className="w-4 h-4" />
+            <Circle className='w-4 h-4' />
           )}
         </button>
       </div>
