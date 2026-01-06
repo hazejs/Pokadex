@@ -10,7 +10,7 @@ import { MainLoader, InfiniteLoader } from './components/Loader';
 const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isFilterPending, startFilterTransition] = useTransition();
+  const [, startFilterTransition] = useTransition();
 
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [types, setTypes] = useState<string[]>([]);
@@ -204,11 +204,7 @@ const App: React.FC = () => {
         updateParams={updateParams}
       />
 
-      <main
-        className={`max-w-7xl mx-auto p-4 md:p-8 transition-opacity duration-300 ${
-          isFilterPending ? 'opacity-50' : 'opacity-100'
-        }`}
-      >
+      <main className={`max-w-7xl mx-auto p-4 md:p-8`}>
         <div className='flex justify-between items-center mb-8'>
           <div className='px-4 py-1.5 rounded-full bg-white dark:bg-[#16191E] shadow-sm border border-white dark:border-white/5 text-sm font-medium'>
             <span className='text-rose-500 font-bold'>{total}</span> Pokemons
