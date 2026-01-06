@@ -37,7 +37,9 @@ export const getPokemon = async (params: {
 };
 
 export const toggleCapture = async (name: string) => {
-  const response = await axios.post(`${API_BASE}/pokemon/${encodeURIComponent(name)}/toggle-capture`);
+  const response = await axios.post(
+    `${API_BASE}/pokemon/${encodeURIComponent(name)}/toggle-capture`
+  );
   return response.data;
 };
 
@@ -47,8 +49,6 @@ export const getTypes = async () => {
 };
 
 export const getIconUrl = (name: string) => {
-  // Extract base name (e.g. "CharizardMega Charizard X" -> "charizard")
-  // We'll split by the second capital letter if it exists to handle concatenated names
   const matches = name.match(/[A-Z][a-z]+/g);
   const baseName = matches ? matches[0] : name;
 

@@ -68,7 +68,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
   const handleCaptureClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // ⚡ INSTANT UPDATE: Use React 19 Action pattern
+
     startTransition(async () => {
       addOptimisticCaptured(!p.captured);
       await onToggleCapture(p.name);
@@ -82,7 +82,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
         optimisticCaptured ? 'ring-2 ring-emerald-500/20' : 'ring-0'
       }`}
     >
-      {/* Top Section: Image & Number */}
       <div className='relative aspect-square overflow-hidden bg-gray-50/50 dark:bg-gray-900/20'>
         <div className='absolute inset-0 opacity-[0.03] dark:opacity-[0.05] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]'></div>
         <div className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.08)_0%,transparent_70%)]'></div>
@@ -98,7 +97,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
           }}
         />
 
-        {/* Action Button - No transitions here for absolute speed */}
         <button
           onClick={handleCaptureClick}
           className={`absolute top-6 right-6 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-md cursor-pointer active:scale-90 ${

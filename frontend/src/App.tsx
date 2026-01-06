@@ -1,89 +1,42 @@
-import React, { useEffect, useState, useRef, useTransition } from 'react';
+import React, { useEffect, useState } from 'react';
 import { preload } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
-import { getPokemon, getTypes, toggleCapture, type Pokemon } from './api';
+import { getTypes } from './api';
 import { useTheme } from './hooks/useTheme';
+import { usePokemonParams } from './hooks/usePokemonParams';
+import { usePokemonList } from './hooks/usePokemonList';
+import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { Header } from './components/Header';
 import { PokemonCard } from './components/PokemonCard';
 import { MainLoader, InfiniteLoader } from './components/Loader';
 
 const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [, startFilterTransition] = useTransition();
+  const { params, updateParams, searchParams } = usePokemonParams();
+  const {
+    pokemonList,
+    total,
+    loading,
+    initialLoading,
+    lastPokemonElementRef,
+    handleToggleCapture,
+  } = usePokemonList(params, updateParams);
 
-  const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [types, setTypes] = useState<string[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [localSearch, setLocalSearch] = useState(
     searchParams.get('search') || ''
   );
-  const isFirstMount = useRef(true);
+  const [prevUrlSearch, setPrevSearch] = useState(
+    searchParams.get('search') || ''
+  );
 
-  // Sync state with URL
-  const page = parseInt(searchParams.get('page') || '1');
-  const search = searchParams.get('search') || '';
-  const type = searchParams.get('type') || '';
-  const captured = searchParams.get('captured') || '';
-  const sortBy = searchParams.get('sortBy') || 'number';
-  const order = (searchParams.get('order') || 'asc') as 'asc' | 'desc';
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const urlSearch = searchParams.get('search') || '';
+  if (urlSearch !== prevUrlSearch) {
+    setPrevSearch(urlSearch);
+    setLocalSearch(urlSearch);
+  }
 
-  const lastPokemonElementRef = (node: HTMLDivElement | null) => {
-    if (loading || initialLoading || !node) return;
+  useScrollRestoration(initialLoading);
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && pokemonList.length < total) {
-        setLoading(true); // Show loader immediately
-        updateParams({ page: page + 1 });
-      }
-    });
-
-    observer.observe(node);
-    // React 19: Functional refs can now return a cleanup function
-    return () => observer.disconnect();
-  };
-
-  const fetchData = async (isInitial: boolean) => {
-    if (isInitial) setInitialLoading(true);
-    else setLoading(true);
-
-    try {
-      const currentLimit =
-        isFirstMount.current && page > 1 ? page * limit : limit;
-      const currentPage = isFirstMount.current && page > 1 ? 1 : page;
-
-      const data = await getPokemon({
-        page: currentPage,
-        limit: currentLimit,
-        search,
-        type,
-        captured: captured === '' ? undefined : captured === 'true',
-        sortBy,
-        order,
-      });
-
-      setPokemonList((prev) => {
-        if (isInitial) return data.pokemon;
-
-        // Use an ID-based check for faster filtering
-        const existingNames = new Set(prev.map((p) => p.name));
-        const newItems = data.pokemon.filter((p) => !existingNames.has(p.name));
-        return [...prev, ...newItems];
-      });
-      setTotal(data.total);
-    } catch (error) {
-      console.error('Failed to fetch pokemon:', error);
-    } finally {
-      if (isInitial) setInitialLoading(false);
-      setLoading(false);
-      isFirstMount.current = false;
-    }
-  };
-
-  // Debounce search input with Transition
   useEffect(() => {
     const timer = setTimeout(() => {
       const currentSearch = searchParams.get('search') || '';
@@ -92,98 +45,19 @@ const App: React.FC = () => {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [localSearch]);
-
-  // Save scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      // Throttle scroll updates
-      if (!window.requestAnimationFrame) {
-        sessionStorage.setItem('scrollPos', window.scrollY.toString());
-      } else {
-        window.requestAnimationFrame(() => {
-          sessionStorage.setItem('scrollPos', window.scrollY.toString());
-        });
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Restore scroll position
-  useEffect(() => {
-    if (!initialLoading && isFirstMount.current === false) {
-      const savedPos = sessionStorage.getItem('scrollPos');
-      if (savedPos) {
-        setTimeout(() => {
-          window.scrollTo({ top: parseInt(savedPos), behavior: 'smooth' });
-        }, 100);
-      }
-    }
-  }, [initialLoading]);
-
-  // Sync localSearch when URL changes
-  useEffect(() => {
-    setLocalSearch(searchParams.get('search') || '');
-  }, [searchParams]);
+  }, [localSearch, updateParams, searchParams]);
 
   useEffect(() => {
     getTypes().then(setTypes).catch(console.error);
-    // React 19: Preload important assets
+    // React 19 - Preload important assets
     preload(
       'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png',
       { as: 'image' }
     );
   }, []);
 
-  useEffect(() => {
-    fetchData(page === 1 || isFirstMount.current);
-  }, [page, search, type, captured, sortBy, order, limit]);
-
-  const updateParams = (
-    updates: Record<string, string | number | undefined>
-  ) => {
-    const performUpdate = () => {
-      const newParams = new URLSearchParams(searchParams);
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === undefined || value === '') {
-          newParams.delete(key);
-        } else {
-          newParams.set(key, String(value));
-        }
-      });
-
-      if (updates.page === undefined) {
-        newParams.set('page', '1');
-      }
-      setSearchParams(newParams);
-    };
-
-    // Only use transition for filters/search/sort, not for pagination
-    if (updates.page !== undefined) {
-      performUpdate();
-    } else {
-      startFilterTransition(performUpdate);
-    }
-  };
-
-  const handleToggleCapture = async (name: string) => {
-    // Note: PokemonCard uses useOptimistic so the UI updates locally first.
-    // This function handles the actual API call and final state sync.
-    try {
-      await toggleCapture(name);
-      setPokemonList((prev) =>
-        prev.map((p) => (p.name === name ? { ...p, captured: !p.captured } : p))
-      );
-    } catch (error) {
-      console.error('Failed to toggle capture:', error);
-      throw error; // Let PokemonCard handle the revert via useOptimistic
-    }
-  };
-
   return (
     <div className='min-h-screen bg-[#F7F6F3] dark:bg-[#0B0D0E] text-gray-900 dark:text-gray-100 transition-colors duration-500'>
-      {/* React 19 Native Metadata Hoisting */}
       <title>Pokédex | {total} found</title>
       <link
         rel='icon'
@@ -195,12 +69,12 @@ const App: React.FC = () => {
         toggleTheme={toggleTheme}
         localSearch={localSearch}
         setLocalSearch={setLocalSearch}
-        type={type}
+        type={params.type}
         types={types}
-        captured={captured}
-        sortBy={sortBy}
-        order={order}
-        limit={limit}
+        captured={params.captured}
+        sortBy={params.sortBy}
+        order={params.order}
+        limit={params.limit}
         updateParams={updateParams}
       />
 
