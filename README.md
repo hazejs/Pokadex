@@ -7,7 +7,7 @@
 - **Advanced Filtering**: Filter by Pokemon Type or Capture status using custom animated dropdowns.
 - **Fuzzy Search**: Real-time searching across names, stats, and Pokédex numbers.
 - **Capture System**: Mark Pokemon as captured with persistent in-memory server state.
-- **Smooth Theming**: Warm Light and Dark modes with automatic system detection and manual toggle.
+- **Smooth Theming**: Light and Dark modes with automatic system detection and manual toggle.
 - **Scroll Restoration**: Automatically remembers your exact scroll position on page refresh.
 
 ---
@@ -19,7 +19,7 @@
 
 ---
 
-## Quick Start (Step-by-Step)
+## Quick Start
 
 ### 1. Clone the Repository
 
