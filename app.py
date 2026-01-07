@@ -95,7 +95,7 @@ def toggle_capture(name):
 
 @app.route('/types')
 def get_types():
-    data = db.get()
+    data = get_cached_data()
     types = set()
     for p in data:
         if p.get('type_one'): types.add(p['type_one'])
