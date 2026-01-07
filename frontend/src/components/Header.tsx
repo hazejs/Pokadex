@@ -88,14 +88,14 @@ export const Header: React.FC<HeaderProps> = ({
             options={typeOptions}
             value={type}
             onChange={(val) => updateParams({ type: val })}
-            className="w-full md:w-40"
+            className='w-full md:w-40'
           />
 
           <CustomDropdown
             options={capturedOptions}
             value={captured}
             onChange={(val) => updateParams({ captured: val })}
-            className="w-full md:w-36"
+            className='w-full md:w-36'
           />
 
           <CustomDropdown
@@ -105,14 +105,14 @@ export const Header: React.FC<HeaderProps> = ({
               const [newSort, newOrder] = val.split('-');
               updateParams({ sortBy: newSort, order: newOrder });
             }}
-            className="w-full md:w-44"
+            className='w-full md:w-44'
           />
 
           <CustomDropdown
             options={limitOptions}
             value={limit}
             onChange={(val) => updateParams({ limit: val, page: 1 })}
-            className="w-full md:w-36"
+            className='w-full md:w-36'
           />
 
           <div className='hidden lg:flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4 ml-1'>
@@ -132,4 +132,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
