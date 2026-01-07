@@ -58,7 +58,6 @@ const App: React.FC = () => {
 
   return (
     <div className='min-h-screen bg-[#F7F6F3] dark:bg-[#0B0D0E] text-gray-900 dark:text-gray-100 transition-colors duration-500'>
-      <title>Pokédex | {total} found</title>
       <link
         rel='icon'
         href='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'
